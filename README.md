@@ -133,5 +133,5 @@ El **informe de negocio** (`documentos/Informe_negocio.pdf`) está pensado para 
 
 ## Autora
 
-**Martina Cottura**: analista de datos (Python · SQL · Power BI), licenciada en Sociología con posgrado en Demografía.
+**Martina Cottura**: analista de datos (Python · SQL · Power BI), licenciada en Sociología.
 [GitHub](https://github.com/martina-cottura)
