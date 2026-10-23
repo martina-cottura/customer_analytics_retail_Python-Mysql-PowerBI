@@ -1,0 +1,66 @@
+table clientes
+	lineageTag: cb721043-8a67-4b4b-8b2a-7315827318e0
+
+	column customer_id
+		dataType: string
+		lineageTag: 71fa62ad-540c-4399-a507-ce04b3fd0300
+		summarizeBy: none
+		sourceColumn: customer_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column nombre
+		dataType: string
+		lineageTag: 543548a7-18b6-47da-b2bd-401e29163dcf
+		summarizeBy: none
+		sourceColumn: nombre
+
+		annotation SummarizationSetBy = Automatic
+
+	column email
+		dataType: string
+		lineageTag: a7bdb752-0ce7-4447-9bf1-d12d662d4a85
+		summarizeBy: none
+		sourceColumn: email
+
+		annotation SummarizationSetBy = Automatic
+
+	column ciudad
+		dataType: string
+		lineageTag: 0519e05f-3954-4533-a23e-29e3b8c2fec3
+		summarizeBy: none
+		sourceColumn: ciudad
+
+		annotation SummarizationSetBy = Automatic
+
+	column canal_adquisicion
+		dataType: string
+		lineageTag: e1597319-4010-4b21-8903-df1936a4cdd6
+		summarizeBy: none
+		sourceColumn: canal_adquisicion
+
+		annotation SummarizationSetBy = Automatic
+
+	column fecha_alta
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 71df2f48-452a-4244-9e82-f52430a20a39
+		summarizeBy: none
+		sourceColumn: fecha_alta
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	partition clientes = m
+		mode: import
+		source =
+				let
+				    Origen = Odbc.DataSource("dsn=mysql_powerbi", [HierarchicalNavigation=true]),
+				    customer_analytics_Database = Origen{[Name="customer_analytics",Kind="Database"]}[Data],
+				    clientes_Table = customer_analytics_Database{[Name="clientes",Kind="Table"]}[Data]
+				in
+				    clientes_Table
+
+	annotation PBI_ResultType = Table
+

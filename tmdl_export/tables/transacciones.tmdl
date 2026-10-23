@@ -1,0 +1,77 @@
+table transacciones
+	lineageTag: 92be2469-9eb4-4d39-8549-482664ccd236
+
+	column transaction_id
+		dataType: string
+		lineageTag: 3e9537d0-ae33-41fb-a6d7-40c600e53f7f
+		summarizeBy: none
+		sourceColumn: transaction_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_id
+		dataType: string
+		lineageTag: a6f22bb1-7d44-4f5a-a939-f5ee909ee919
+		summarizeBy: none
+		sourceColumn: customer_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_id
+		dataType: string
+		lineageTag: 5873f3a9-42d0-4292-b1d8-70596f08f2e5
+		summarizeBy: none
+		sourceColumn: product_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column store_id
+		dataType: string
+		lineageTag: fc733616-74c6-41cc-bd23-5c0356be2a42
+		summarizeBy: none
+		sourceColumn: store_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column cantidad
+		dataType: int64
+		formatString: 0
+		lineageTag: 9eb55c61-0198-483a-9c08-00315cd70012
+		summarizeBy: sum
+		sourceColumn: cantidad
+
+		annotation SummarizationSetBy = Automatic
+
+	column importe
+		dataType: double
+		lineageTag: 97a66eac-d69b-40d3-9412-c6ea1a7421a0
+		summarizeBy: sum
+		sourceColumn: importe
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column fecha
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 0d0e39a8-b6c0-407f-9058-1640dcc3fd23
+		summarizeBy: none
+		sourceColumn: fecha
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	partition transacciones = m
+		mode: import
+		source =
+				let
+				    Origen = Odbc.DataSource("dsn=mysql_powerbi", [HierarchicalNavigation=true]),
+				    customer_analytics_Database = Origen{[Name="customer_analytics",Kind="Database"]}[Data],
+				    transacciones_Table = customer_analytics_Database{[Name="transacciones",Kind="Table"]}[Data]
+				in
+				    transacciones_Table
+
+	annotation PBI_ResultType = Table
+

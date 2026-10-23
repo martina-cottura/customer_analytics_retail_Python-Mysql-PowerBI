@@ -1,0 +1,40 @@
+table tiendas
+	lineageTag: 61a2fa1e-c423-43b6-8d03-204e34163262
+
+	column store_id
+		dataType: string
+		lineageTag: e1a8a112-837e-4860-8bbd-6dba5f67b47d
+		summarizeBy: none
+		sourceColumn: store_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column nombre
+		dataType: string
+		lineageTag: d551ca98-1521-411d-85e7-5bbee6f4287e
+		summarizeBy: none
+		sourceColumn: nombre
+
+		annotation SummarizationSetBy = Automatic
+
+	column Tienda
+		dataType: string
+		lineageTag: 1decc3da-9355-4d22-9dd9-d80fbf600e2f
+		summarizeBy: none
+		sourceColumn: Tienda
+
+		annotation SummarizationSetBy = Automatic
+
+	partition tiendas = m
+		mode: import
+		source =
+				let
+				    Origen = Odbc.DataSource("dsn=mysql_powerbi", [HierarchicalNavigation=true]),
+				    customer_analytics_Database = Origen{[Name="customer_analytics",Kind="Database"]}[Data],
+				    tiendas_Table = customer_analytics_Database{[Name="tiendas",Kind="Table"]}[Data],
+				    #"Columnas con nombre cambiado" = Table.RenameColumns(tiendas_Table,{{"ciudad", "Tienda"}})
+				in
+				    #"Columnas con nombre cambiado"
+
+	annotation PBI_ResultType = Table
+

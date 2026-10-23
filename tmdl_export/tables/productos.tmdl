@@ -1,0 +1,49 @@
+table productos
+	lineageTag: 8a13ea0d-20db-4d71-8e70-17f0ab252adf
+
+	column product_id
+		dataType: string
+		lineageTag: 47c88dda-dfb5-41e5-b93c-768f5919fd17
+		summarizeBy: none
+		sourceColumn: product_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column nombre
+		dataType: string
+		lineageTag: d4b8f741-e0ae-4f9c-ba87-2ecaa5be45f8
+		summarizeBy: none
+		sourceColumn: nombre
+
+		annotation SummarizationSetBy = Automatic
+
+	column categoria
+		dataType: string
+		lineageTag: 512ff687-d8dc-4a70-b33d-bd3e905ff879
+		summarizeBy: none
+		sourceColumn: categoria
+
+		annotation SummarizationSetBy = Automatic
+
+	column precio_base
+		dataType: double
+		lineageTag: 2ab48dd6-4c1e-4965-afd8-100108aa9e9e
+		summarizeBy: none
+		sourceColumn: precio_base
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition productos = m
+		mode: import
+		source =
+				let
+				    Origen = Odbc.DataSource("dsn=mysql_powerbi", [HierarchicalNavigation=true]),
+				    customer_analytics_Database = Origen{[Name="customer_analytics",Kind="Database"]}[Data],
+				    productos_Table = customer_analytics_Database{[Name="productos",Kind="Table"]}[Data]
+				in
+				    productos_Table
+
+	annotation PBI_ResultType = Table
+

@@ -1,0 +1,30 @@
+relationship 7eb5749e-f6eb-4d3d-b1e8-b18aac23bc17
+	crossFilteringBehavior: bothDirections
+	fromCardinality: one
+	fromColumn: clientes_rfm.customer_id
+	toColumn: clientes.customer_id
+
+	annotation PBI_IsFromSource = FS
+
+relationship f376b23d-894f-49b4-a83d-1a3a674fc09e
+	fromColumn: transacciones.customer_id
+	toColumn: clientes.customer_id
+
+	annotation PBI_IsFromSource = FS
+
+relationship 4533bcb1-8ff4-458d-8a01-3609cd895ec6
+	fromColumn: transacciones.product_id
+	toColumn: productos.product_id
+
+	annotation PBI_IsFromSource = FS
+
+relationship 578242b2-0aef-4cf5-8e5a-1f88098d55f3
+	fromColumn: transacciones.store_id
+	toColumn: tiendas.store_id
+
+	annotation PBI_IsFromSource = FS
+
+relationship 3232d999-ef75-0f68-6845-5732d7f57a6e
+	fromColumn: transacciones.fecha
+	toColumn: Calendario.Date
+

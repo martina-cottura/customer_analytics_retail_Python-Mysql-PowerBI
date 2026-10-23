@@ -1,0 +1,24 @@
+model Model
+	culture: es-ES
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: es-ES
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+annotation PBI_QueryOrder = ["clientes","clientes_rfm","productos","tiendas","transacciones"]
+
+annotation PBI_ProTooling = ["MCP-PBIModeling"]
+
+ref table clientes
+ref table clientes_rfm
+ref table productos
+ref table tiendas
+ref table transacciones
+ref table Calendario
+ref table Medidas
+
+ref cultureInfo es-ES
+

@@ -1,0 +1,91 @@
+table clientes_rfm
+	lineageTag: c73a041e-93a7-430a-bfc1-267545f17b5f
+
+	column customer_id
+		dataType: string
+		lineageTag: a6ce6e81-5dde-4e54-9937-1399dece63b4
+		summarizeBy: none
+		sourceColumn: customer_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column recencia
+		dataType: int64
+		formatString: 0
+		lineageTag: f94fa016-628e-4db0-b737-bfbd170328f2
+		summarizeBy: sum
+		sourceColumn: recencia
+
+		annotation SummarizationSetBy = Automatic
+
+	column frecuencia
+		dataType: int64
+		formatString: 0
+		lineageTag: 07434c90-5d55-43ec-9ca6-83297522f0d4
+		summarizeBy: sum
+		sourceColumn: frecuencia
+
+		annotation SummarizationSetBy = Automatic
+
+	column monetario
+		dataType: double
+		formatString: €#,##0
+		lineageTag: 0107aad7-494f-4180-a2f4-d0a2d8f0a6a0
+		summarizeBy: sum
+		sourceColumn: monetario
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column segmento_rfm
+		dataType: string
+		lineageTag: 19b3c21d-389d-4920-9c7e-c60fb753b779
+		summarizeBy: none
+		sourceColumn: segmento_rfm
+		sortByColumn: orden_segmento
+
+		annotation SummarizationSetBy = Automatic
+
+	column churn_riesgo
+		dataType: int64
+		formatString: 0
+		lineageTag: fa22e090-d4cf-4fba-9c29-12b0e2dfbe48
+		summarizeBy: sum
+		sourceColumn: churn_riesgo
+
+		annotation SummarizationSetBy = Automatic
+
+	column fecha_calculo
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 50fcee55-3644-429c-b0de-baedeb64f01c
+		summarizeBy: none
+		sourceColumn: fecha_calculo
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	/// Orden de visualización de segmento_rfm (Alto Valor = 1, Medio Valor = 2, Bajo Valor = 3, Sin Transacciones = 4). Se agrega en Power Query; solo ordena los visuales y no interviene en ningún cálculo.
+	column orden_segmento
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 0530dbd8-6cb3-4184-b562-c655d008a64f
+		summarizeBy: none
+		sourceColumn: orden_segmento
+
+	partition clientes_rfm = m
+		mode: import
+		source =
+				let
+				    Origen = Odbc.DataSource("dsn=mysql_powerbi", [HierarchicalNavigation=true]),
+				    customer_analytics_Database = Origen{[Name="customer_analytics",Kind="Database"]}[Data],
+				    clientes_rfm_Table = customer_analytics_Database{[Name="clientes_rfm",Kind="Table"]}[Data],
+				    #"Orden segmento" = Table.AddColumn(clientes_rfm_Table, "orden_segmento", each if [segmento_rfm] = "Alto Valor" then 1 else if [segmento_rfm] = "Medio Valor" then 2 else if [segmento_rfm] = "Bajo Valor" then 3 else 4, Int64.Type)
+				in
+				    #"Orden segmento"
+
+	annotation PBI_ResultType = Table
+
