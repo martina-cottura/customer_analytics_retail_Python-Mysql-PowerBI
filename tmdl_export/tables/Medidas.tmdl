@@ -1,0 +1,375 @@
+table Medidas
+	lineageTag: 01052923-15b8-40e9-bb62-f7c502a8d120
+
+	measure 'Revenue Total' =
+
+			SUM(transacciones[importe])
+		formatString: €#,##0.00
+		displayFolder: Medidas\Core
+		lineageTag: bd07f3ad-ecb3-4b11-a086-7737f18ebf0a
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Clientes únicos con al menos una transacción en el contexto de filtro activo.
+	measure 'Total Clientes' = DISTINCTCOUNT(transacciones[customer_id])
+		formatString: 0
+		displayFolder: Medidas\Core
+		lineageTag: ffee5908-6d73-46b9-8e55-0028591279f6
+
+	measure 'Total Transacciones' =
+
+			COUNTROWS(transacciones)
+		formatString: 0
+		displayFolder: Medidas\Core
+		lineageTag: 89454437-c6f8-44c3-812c-cde9cf677025
+
+	measure 'Ticket Medio' =
+
+			DIVIDE(
+			    [Revenue Total],
+			    [Total Transacciones]
+			)
+		formatString: €#,0.00
+		displayFolder: Medidas\Core
+		lineageTag: d760c2f0-5c73-4594-8a34-687361a6838b
+
+	measure 'Frecuencia Compra' =
+
+			DIVIDE(
+			    [Total Transacciones],
+			    [Total Clientes]
+			)
+		displayFolder: Medidas\Core
+		lineageTag: 2f01882b-848a-40df-a4a5-7bd7c1637903
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Porcentaje de clientes en riesgo (inactividad elevada: recencia > P70 = 234 días) sobre los clientes con historial transaccional real, excluyendo a quienes nunca compraron (recencia = 999).
+	measure '% Clientes en Riesgo' =
+			DIVIDE(
+			    CALCULATE(
+			        DISTINCTCOUNT(clientes_rfm[customer_id]),
+			        clientes_rfm[churn_riesgo] = 1,
+			        clientes_rfm[recencia] <> 999
+			    ),
+			    CALCULATE(
+			        DISTINCTCOUNT(clientes_rfm[customer_id]),
+			        clientes_rfm[recencia] <> 999
+			    ),
+			    0
+			)
+		formatString: 0.00%
+		displayFolder: Medidas\Churn and Retention
+		lineageTag: fbe6971e-9518-41c5-b548-f56a4f27d0e2
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure '% Retención' =
+
+			DIVIDE(
+			    [Clientes Activos],
+			    [Clientes Activos] + [Clientes Inactivos (En Riesgo)],
+			    0
+			)
+		displayFolder: Medidas\Churn and Retention
+		lineageTag: cef03e74-e341-472c-b2fc-bd2de27f28d5
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Clientes activos (churn_riesgo = 0, excluye sin transacciones) en el contexto de filtro activo. El umbral (P70 = 234 días) vive en Python; DAX solo lee el flag.
+	measure 'Clientes Activos' =
+			VAR ClientesEnContexto =
+			    CALCULATETABLE(
+			        VALUES(transacciones[customer_id]),
+			        REMOVEFILTERS(Calendario),
+			        REMOVEFILTERS(tiendas)
+			    )
+			RETURN
+			CALCULATE(
+			    COUNTROWS(clientes_rfm),
+			    KEEPFILTERS(clientes_rfm[customer_id] IN ClientesEnContexto),
+			    clientes_rfm[churn_riesgo] = 0,
+			    clientes_rfm[recencia] <> 999
+			)
+		formatString: 0
+		displayFolder: Medidas\Churn and Retention
+		lineageTag: 9d93beb6-db8f-4afa-a22a-143ef34ae5eb
+
+	/// Clientes en riesgo (churn_riesgo = 1, recencia > P70 = 234 días) en el contexto de filtro activo. El umbral vive en Python; DAX solo lee el flag.
+	measure 'Clientes Inactivos (En Riesgo)' =
+			VAR ClientesEnContexto =
+			    CALCULATETABLE(
+			        VALUES(transacciones[customer_id]),
+			        REMOVEFILTERS(Calendario),
+			        REMOVEFILTERS(tiendas)
+			    )
+			RETURN
+			CALCULATE(
+			    COUNTROWS(clientes_rfm),
+			    KEEPFILTERS(clientes_rfm[customer_id] IN ClientesEnContexto),
+			    clientes_rfm[churn_riesgo] = 1,
+			    clientes_rfm[recencia] <> 999
+			)
+		formatString: 0
+		displayFolder: Medidas\Churn and Retention
+		lineageTag: 86b9ac10-2e1d-4a5a-be8c-0ffa04c1f4bd
+
+	/// Valor de vida útil promedio por cliente sobre la cartera completa. Snapshot acumulado: neutraliza Calendario y tiendas, ya que el LTV es un valor de vida por cliente y la tabla clientes_rfm tiene granularidad cliente, no cliente-tienda. Un mismo cliente opera en varias unidades de negocio, de modo que un LTV por tienda contaría al mismo cliente en varias cajas.
+	measure 'LTV Medio' =
+			CALCULATE(
+			    AVERAGEX(
+			        VALUES(clientes_rfm[customer_id]),
+			        CALCULATE(
+			            SUM(transacciones[importe]),
+			            REMOVEFILTERS(Calendario)
+			        )
+			    ),
+			    REMOVEFILTERS(tiendas)
+			)
+		formatString: #,0.00\ "€";-#,0.00\ "€";#,0.00\ "€"
+		displayFolder: Medidas\LTV
+		lineageTag: ef9df84c-d21a-4e60-bcce-af99f513257f
+
+	measure 'Clientes Segmento' =
+
+			CALCULATE(
+			    DISTINCTCOUNT(clientes_rfm[customer_id]),
+			    clientes_rfm[recencia] <> 999
+			)
+		formatString: 0
+		displayFolder: Medidas\RFM
+		lineageTag: 82d960cc-9611-4f69-b0c8-fafe83cd1b30
+
+	/// Participación de cada segmento RFM en los clientes con transacciones. Denominador vía ALL(segmento_rfm, orden_segmento); orden_segmento se incluye porque es la columna de orden de segmento_rfm.
+	measure '% Clientes Segmento' =
+
+			DIVIDE(
+			    [Clientes Segmento],
+			    CALCULATE(
+			        [Clientes Segmento],
+			        ALL(clientes_rfm[segmento_rfm], clientes_rfm[orden_segmento])
+			    )
+			)
+		formatString: 0.0%
+		displayFolder: Medidas\RFM
+		lineageTag: d6a26d28-c2bd-4a91-ad7d-ae98d14f541a
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Recencia promedio en días sobre clientes con historial transaccional real (excluye recencia=999 / sin transacciones).
+	measure 'Recencia Promedio' = CALCULATE(AVERAGE(clientes_rfm[recencia]), clientes_rfm[recencia] <> 999)
+		displayFolder: Medidas\RFM
+		lineageTag: b8d15d01-194a-4def-9c08-22cde6282036
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Frecuencia Promedio' =
+
+			AVERAGE(clientes_rfm[frecuencia])
+		displayFolder: Medidas\RFM
+		lineageTag: d6469d0c-69ee-4143-a77d-c298a4c13b1e
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Usuarios Sin Transacciones' = ```
+
+			CALCULATE(
+			    COUNT(clientes_rfm[customer_id]),
+			    clientes_rfm[recencia] = 999
+			)
+			```
+		formatString: 0
+		displayFolder: Medidas\Churn and Retention
+		lineageTag: cf6e1db1-7ed7-476c-b652-ae70d449c24a
+
+	measure 'Crecimiento 2025 vs 2024' =
+
+			VAR Revenue2025 =
+			    CALCULATE(
+			        [Revenue Total],
+			        REMOVEFILTERS(Calendario[Año]),
+			        Calendario[Año] = 2025
+			    )
+
+			VAR Revenue2024 =
+			    CALCULATE(
+			        [Revenue Total],
+			        REMOVEFILTERS(Calendario[Año]),
+			        Calendario[Año] = 2024
+			    )
+
+			RETURN
+			DIVIDE(
+			    Revenue2025 - Revenue2024,
+			    Revenue2024,
+			    0
+			)
+		displayFolder: Medidas\Core
+		lineageTag: 4d1f2c15-7a85-4db1-942b-001574d13240
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Participación de cada segmento RFM en la facturación total. Snapshot acumulado de todo el período: usa REMOVEFILTERS(Calendario) para permanecer inmune a slicers temporales. Responde al slicer de Tienda. Denominador = facturación de todos los segmentos vía REMOVEFILTERS(segmento_rfm, orden_segmento); orden_segmento se incluye porque es la columna de orden de segmento_rfm.
+	measure '% Revenue Segmento' =
+
+			VAR RevSegmento =
+			    CALCULATE([Revenue Total], REMOVEFILTERS(Calendario))
+			VAR RevTotalSegmentos =
+			    CALCULATE(
+			        [Revenue Total],
+			        REMOVEFILTERS(Calendario),
+			        REMOVEFILTERS(clientes_rfm[segmento_rfm], clientes_rfm[orden_segmento])
+			    )
+			RETURN
+			DIVIDE(RevSegmento, RevTotalSegmentos)
+		formatString: 0.0%
+		displayFolder: Medidas\RFM
+		lineageTag: cc0a588c-80d3-4ec0-bdc5-58d9bbc90e46
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Participación en la facturación total de los clientes en riesgo (churn_riesgo = 1). Es alta en volumen de clientes (29,79%) pero baja en valor (11,14% de la facturación). Snapshot: REMOVEFILTERS(Calendario). Responde al slicer de Tienda.
+	measure '% Revenue en Riesgo' =
+			VAR ClientesRiesgo =
+			    CALCULATETABLE(VALUES(clientes_rfm[customer_id]), clientes_rfm[churn_riesgo] = 1)
+			VAR RevRiesgo =
+			    CALCULATE([Revenue Total], REMOVEFILTERS(Calendario), TREATAS(ClientesRiesgo, transacciones[customer_id]))
+			VAR RevTotal =
+			    CALCULATE([Revenue Total], REMOVEFILTERS(Calendario))
+			RETURN
+			DIVIDE(RevRiesgo, RevTotal)
+		formatString: 0.00%
+		displayFolder: Medidas\Churn and Retention
+		lineageTag: b77fb49f-7aa5-4612-b5a2-1a6132567d47
+
+	/// Facturación histórica 2023-2025 (monetario) de los clientes en riesgo al 1/1/2026. Ignora filtros y selecciones sobre clientes_rfm, como el resto de las medidas de Priorización.
+	measure 'Revenue Histórico en Riesgo' =
+			CALCULATE(
+			    SUM(clientes_rfm[monetario]),
+			    REMOVEFILTERS(clientes_rfm),
+			    clientes_rfm[churn_riesgo] = 1,
+			    clientes_rfm[recencia] <> 999
+			)
+		formatString: €#,##0
+		displayFolder: Medidas\Priorización
+		lineageTag: 1e748cd6-862f-45c4-94fb-20d54e49d616
+
+	/// Clientes en riesgo con mayor facturación histórica: el 30% superior (ROUND(0,3 × 269) = 81). Coincide con los deciles 1 a 3 de la vista v_retencion_prioridad. Se calcula sobre todos los clientes en riesgo, sin responder a filtros.
+	measure 'Clientes Prioritarios' =
+			VAR N =
+			    CALCULATE(
+			        COUNTROWS(clientes_rfm),
+			        REMOVEFILTERS(clientes_rfm),
+			        clientes_rfm[churn_riesgo] = 1,
+			        clientes_rfm[recencia] <> 999
+			    )
+			RETURN
+			ROUND(0.3 * N, 0)
+		formatString: 0
+		displayFolder: Medidas\Priorización
+		lineageTag: 0e6a485c-e4e3-4efc-9cba-284196d8bfd5
+
+	/// Posición del cliente (1 = mayor facturación histórica) entre los clientes en riesgo. Vacío para clientes activos o sin transacciones. Usar como filtro de visual: Ranking <= Clientes Prioritarios.
+	measure 'Ranking Valor en Riesgo' =
+			IF(
+			    HASONEVALUE(clientes_rfm[customer_id])
+			        && MAX(clientes_rfm[churn_riesgo]) = 1
+			        && MAX(clientes_rfm[recencia]) <> 999,
+			    RANKX(
+			        FILTER(
+			            ALL(clientes_rfm),
+			            clientes_rfm[churn_riesgo] = 1 && clientes_rfm[recencia] <> 999
+			        ),
+			        CALCULATE(SUM(clientes_rfm[monetario])),
+			        ,
+			        DESC,
+			        Dense
+			    )
+			)
+		formatString: 0
+		displayFolder: Medidas\Priorización
+		lineageTag: 8a8175da-d973-4043-9b44-52decf7a3081
+
+	/// Facturación histórica de los clientes prioritarios (30% superior en valor dentro de los clientes en riesgo).
+	measure 'Revenue Clientes Prioritarios' =
+			VAR R =
+			    FILTER(
+			        ALL(clientes_rfm),
+			        clientes_rfm[churn_riesgo] = 1 && clientes_rfm[recencia] <> 999
+			    )
+			VAR Corte = ROUND(0.3 * COUNTROWS(R), 0)
+			VAR T =
+			    ADDCOLUMNS(R, "rk", RANKX(R, clientes_rfm[monetario], , DESC, Dense))
+			RETURN
+			SUMX(FILTER(T, [rk] <= Corte), clientes_rfm[monetario])
+		formatString: €#,##0
+		displayFolder: Medidas\Priorización
+		lineageTag: 0d967eed-24aa-4c2f-a3d8-5b0a15eff1e2
+
+	/// Participación de los clientes prioritarios en la facturación histórica total de los clientes en riesgo (62,7% con 81 clientes).
+	measure '% Valor en Riesgo en Prioritarios' =
+			VAR Total =
+			    CALCULATE(
+			        SUM(clientes_rfm[monetario]),
+			        REMOVEFILTERS(clientes_rfm),
+			        clientes_rfm[churn_riesgo] = 1,
+			        clientes_rfm[recencia] <> 999
+			    )
+			RETURN
+			DIVIDE([Revenue Clientes Prioritarios], Total)
+		formatString: 0.0%
+		displayFolder: Medidas\Priorización
+		lineageTag: 6ad0b1b1-cadb-47a8-892a-4cbde2ea7a05
+
+	/// 1 si el cliente está en riesgo y dentro del 30% de mayor facturación histórica; vacío en otro caso. Usar como filtro de visual: Es Prioritario = 1.
+	measure 'Es Prioritario' =
+			VAR rk = [Ranking Valor en Riesgo]
+			RETURN
+			IF(NOT ISBLANK(rk) && rk <= [Clientes Prioritarios], 1)
+		formatString: 0
+		displayFolder: Medidas\Priorización
+		lineageTag: 85e3f65e-7595-4fee-87ac-4562eee9e269
+
+	/// Clientes prioritarios (30% superior en valor) sobre el total de clientes en riesgo. Se usa junto con % Valor en Riesgo en Prioritarios para mostrar la concentración: 30% de los clientes, 62,7% del valor.
+	measure '% Clientes Prioritarios sobre En Riesgo' =
+			VAR N =
+			    CALCULATE(
+			        COUNTROWS(clientes_rfm),
+			        REMOVEFILTERS(clientes_rfm),
+			        clientes_rfm[churn_riesgo] = 1,
+			        clientes_rfm[recencia] <> 999
+			    )
+			RETURN
+			DIVIDE([Clientes Prioritarios], N)
+		formatString: 0.0%
+		displayFolder: Medidas\Priorización
+		lineageTag: dcceb9c5-067e-4863-984f-c631242d46d9
+
+	/// Total de clientes en riesgo (churn_riesgo = 1, recencia > 234 días, excluye sin transacciones) al 1/1/2026. Ignora filtros y selecciones sobre clientes_rfm, como el resto de las medidas de Priorización: es el universo fijo de la página 3.
+	measure 'Clientes en Riesgo (Foto)' =
+			CALCULATE(
+			    COUNTROWS(clientes_rfm),
+			    REMOVEFILTERS(clientes_rfm),
+			    clientes_rfm[churn_riesgo] = 1,
+			    clientes_rfm[recencia] <> 999
+			)
+		formatString: 0
+		displayFolder: Medidas\Priorización
+		lineageTag: 327f73ed-5875-4301-ad72-77640d176b8e
+
+	column Value
+		isHidden
+		formatString: 0
+		lineageTag: 2ed884b1-65db-4169-9b70-0813162004b4
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Value]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Medidas = calculated
+		mode: import
+		source = { BLANK() }
+
+	annotation PBI_Id = b21298ba01e84f79b87134742644aedc
+

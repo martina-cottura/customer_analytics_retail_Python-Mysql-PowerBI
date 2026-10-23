@@ -1,0 +1,142 @@
+table Calendario
+	lineageTag: 7581c173-e1ba-44b1-aa06-9b669370cf26
+	dataCategory: Time
+
+	column Date
+		isKey
+		formatString: Long Date
+		lineageTag: 63ecd9ec-9214-42ca-9421-e1ec196f7730
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Date]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Año
+		formatString: 0
+		lineageTag: 67e5366c-8097-4dee-88c1-1673d72420ac
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Año]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Trimestre
+		lineageTag: 25d6450a-6831-4d05-aadd-a7fad0c2396d
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Trimestre]
+		sortByColumn: Trimestre_Numero
+
+		annotation SummarizationSetBy = Automatic
+
+	column Mes_Numero
+		isHidden
+		formatString: 0
+		lineageTag: 1020cb57-976a-4226-98d3-3ad0696747c0
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Mes_Numero]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Mes_Nombre
+		lineageTag: 62b83cfa-7cf5-4698-b890-23b42a570324
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Mes_Nombre]
+		sortByColumn: Mes_Numero
+
+		annotation SummarizationSetBy = Automatic
+
+	column Dia_Semana_Nombre
+		lineageTag: c23c7004-80fb-4557-babd-15d5a461eb83
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Dia_Semana_Nombre]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Año_Mes
+		lineageTag: 88bb9214-14c8-4ef6-a28e-6af77be534ac
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Año_Mes]
+		sortByColumn: AñoMes_Num
+
+		annotation SummarizationSetBy = Automatic
+
+	column AñoMes_Num
+		isHidden
+		formatString: 0
+		lineageTag: 73fc44d1-9ace-4754-8250-472a69241f81
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [AñoMes_Num]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Dia_Semana_Numero
+		isHidden
+		formatString: 0
+		lineageTag: 70d7723b-dfaf-4f7c-8fe5-a15ae588fc5e
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Dia_Semana_Numero]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Trimestre_Numero
+		isHidden
+		formatString: 0
+		lineageTag: 05633a66-7900-4e25-ac66-cede9c896279
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Trimestre_Numero]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Calendario = calculated
+		mode: import
+		source =
+				
+				VAR FechaInicio =
+				    MIN(transacciones[fecha])
+				
+				VAR FechaFin =
+				    MAX(transacciones[fecha])
+				
+				RETURN
+				ADDCOLUMNS(
+				    CALENDAR(FechaInicio, FechaFin),
+				
+				    "Año",
+				        YEAR([Date]),
+				
+				    "Trimestre",
+				        "T" & QUARTER([Date]),
+				"Trimestre_Numero",
+				QUARTER([Date]),
+				    "Mes_Numero",
+				        MONTH([Date]),
+				
+				    "Mes_Nombre",
+				        FORMAT([Date], "MMMM", "es-ES"),
+				
+				    "Año_Mes",
+				        FORMAT([Date], "YYYY-MM"),
+				
+				    "AñoMes_Num",
+				        YEAR([Date]) * 100 + MONTH([Date]),
+				
+				    "Dia_Semana_Numero",
+				        WEEKDAY([Date],2),
+				
+				    "Dia_Semana_Nombre",
+				        FORMAT([Date], "DDDD", "es-ES")
+				)
+
+	annotation PBI_Id = 8037da8936cb4d7a9dabceba45aac7bb
+

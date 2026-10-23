@@ -1,0 +1,5 @@
+# Notebooks de python/notebooks (Python 3.11+)
+pandas>=2.0
+numpy>=1.24
+faker>=19.0      # solo 01_generacion_dataset.ipynb
+jupyter

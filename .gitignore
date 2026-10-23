@@ -1,0 +1,15 @@
+# Jupyter
+.ipynb_checkpoints/
+__pycache__/
+
+# Copias de trabajo y backups locales
+_backup_pre_github/
+
+# Archivos temporales de Office
+~$*.docx
+~$*.xlsx
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
