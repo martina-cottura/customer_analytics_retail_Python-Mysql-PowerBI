@@ -8,6 +8,21 @@ El proyecto responde a una pregunta de negocio concreta: **cómo se distribuye e
 
 ---
 
+## Origen de los datos
+
+Los datos son sintéticos: se generaron en Python (`python/notebooks/01_generacion_dataset.ipynb`) para simular lo que exportarían los dos sistemas de un retailer real, un **CRM** con los clientes y un **ERP** con las ventas, el catálogo y los puntos de venta.
+
+| Sistema | Tabla | Qué registra | Filas |
+|---|---|---|---|
+| CRM | `clientes.csv` | Alta de cada cliente: ciudad, canal de adquisición y fecha de alta | 1.000 |
+| ERP | `transacciones.csv` | Cada venta: cliente, producto, tienda, cantidad, importe y fecha | 8.000 |
+| ERP | `productos.csv` | Catálogo: categoría y precio base | 48 |
+| ERP | `tiendas.csv` | Puntos de venta: cuatro tiendas físicas y el canal online | 5 |
+
+Saber de qué sistema sale cada tabla ayuda a leer los resultados. El CRM registra a un cliente cuando se da de alta, aunque nunca compre: por eso hay 97 clientes sin transacciones. El ERP registra una línea por venta, y ahí aparecen los errores típicos de carga operativa, como las 240 transacciones sin punto de venta. Esos errores se introdujeron a propósito en el generador para trabajar la limpieza como con datos reales.
+
+---
+
 ## Dashboard
 
 **1. Resumen ejecutivo.** Facturación, compradores, transacciones y evolución mensual, con filtros de año y tienda.
