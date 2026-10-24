@@ -61,7 +61,7 @@ Los 81 clientes prioritarios pertenecen todos al segmento **Bajo Valor**, y no p
 - **Foto estática.** La segmentación RFM se calcula una vez al 1/1/2026 y no muestra cómo se mueven los clientes entre segmentos.
 - **Datos sintéticos.** Algunas regularidades, como el ticket casi idéntico entre segmentos y tiendas, vienen del generador. Las conclusiones tendrían que revalidarse con datos reales.
 - **Sin costos ni márgenes.** Las cifras dimensionan oportunidades sobre facturación, no su rentabilidad.
-- **Decisiones de limpieza con efecto en los resultados.** Las 240 transacciones sin punto de venta se imputaron al canal online, y eso explica buena parte de su liderazgo en facturación.
+- **Decisiones de limpieza con efecto en los resultados.** Las 240 transacciones sin punto de venta se imputaron al canal online, lo que explica buena parte de su liderazgo en facturación. Es un supuesto operativo (en tienda física la caja registra el punto de venta; el pedido online se integra al ERP desde otro sistema) que este dataset no permite confirmar. Con datos reales lo validaría con el medio de pago o el sistema de origen del pedido y, si no se confirmara, las dejaría como "Sin asignar".
 
 El detalle de cada limitación está en el capítulo 9 del informe técnico.
 
