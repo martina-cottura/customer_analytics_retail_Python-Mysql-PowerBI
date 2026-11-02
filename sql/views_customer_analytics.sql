@@ -12,14 +12,14 @@
 -- dashboard (informe, apartados 5.3, 5.4 y anexo B).
 --
 -- Nota sobre clientes.fecha_alta: el campo es inconsistente con las
--- transacciones (739 de 903 compradores registran compras anteriores a
+-- transacciones (739 de 902 compradores registran compras anteriores a
 -- su alta; informe, apartado 4.2). No se expone en ninguna vista.
 -- =====================================================================
 
 
 -- ---------------------------------------------------------------------
 -- BASE · v_hechos_transacciones
--- Grano: 1 fila por transacción (8.000).
+-- Grano: 1 fila por transacción (7.999).
 -- Uso: exploración ad-hoc y validación cruzada.
 -- ADVERTENCIA: no conectar a Power BI como fuente del modelo semántico.
 -- Aplanar el esquema estrella en una tabla ancha destruye el modelo
@@ -115,7 +115,7 @@ SELECT
     ROUND(100.0 * SUM(SUM(monetario)) OVER (ORDER BY SUM(monetario) DESC)
           / SUM(SUM(monetario)) OVER (), 1)                         AS pct_valor_acumulado,
     -- Índice de concentración: cuántas veces pesa más el segmento en
-    -- valor que en cantidad de compradores (base 903, sin los 97 no
+    -- valor que en cantidad de compradores (base 902, sin los 98 no
     -- convertidos). >1 = segmento sobre-indexado.
     ROUND((SUM(monetario) / SUM(SUM(monetario)) OVER ())
           / NULLIF(SUM(CASE WHEN recencia <> 999 THEN 1 ELSE 0 END)
@@ -174,7 +174,7 @@ GROUP BY YEAR(t.fecha), r.segmento_rfm;
 -- Q3 · ¿Qué clientes presentan mayor riesgo de abandono?
 -- ---------------------------------------------------------------------
 -- v_retencion_prioridad
--- Grano: 1 fila por cliente en riesgo (269).
+-- Grano: 1 fila por cliente en riesgo (271).
 --
 -- La pregunta, convertida en acción: no todos los clientes en riesgo
 -- merecen la misma inversión de retención. La vista ordena por
@@ -183,10 +183,14 @@ GROUP BY YEAR(t.fecha), r.segmento_rfm;
 -- Usa el flag en_riesgo persistido, NO un umbral de días escrito a
 -- mano en SQL. Si el umbral cambia en Python, la vista sigue correcta.
 --
--- pct_valor_en_riesgo y decil_valor permiten cortar la lista por
--- impacto: los deciles 1 a 3 (81 clientes) concentran el 62,7% de la
--- facturación asociada a clientes en riesgo. "Hay 269 clientes en
--- riesgo" no sostiene una decisión de presupuesto; ese corte sí.
+-- es_prioritario marca el 30% de mayor facturación histórica
+-- (ROUND(0,3 × 271) = 81 clientes), con el mismo criterio que la medida
+-- Clientes Prioritarios de Power BI. Esos 81 clientes concentran el
+-- 62,9% de la facturación asociada a clientes en riesgo. "Hay 271
+-- clientes en riesgo" no sostiene una decisión de presupuesto; ese
+-- corte sí. decil_valor (NTILE) se conserva para explorar, pero sus
+-- deciles 1 a 3 suman 82 clientes: NTILE asigna el cliente sobrante de
+-- 271 / 10 al primer decil.
 -- ---------------------------------------------------------------------
 DROP VIEW IF EXISTS v_retencion_prioridad;
 CREATE VIEW v_retencion_prioridad AS
@@ -202,6 +206,9 @@ SELECT
     ROUND(r.monetario / NULLIF(r.frecuencia, 0), 2)                  AS ticket_historico,
     ROUND(100.0 * r.monetario / SUM(r.monetario) OVER (), 2)         AS pct_valor_en_riesgo,
     NTILE(10) OVER (ORDER BY r.monetario DESC)                       AS decil_valor,
+    CASE WHEN ROW_NUMBER() OVER (ORDER BY r.monetario DESC)
+              <= ROUND(0.3 * COUNT(*) OVER ())
+         THEN 1 ELSE 0 END                                           AS es_prioritario,
     r.fecha_calculo
 FROM clientes c
 JOIN clientes_rfm r ON c.customer_id = r.customer_id
@@ -254,8 +261,8 @@ GROUP BY p.categoria, t.store_id, s.nombre;
 -- segmento RFM y exponía un COUNT(DISTINCT customer_id) por tienda, un
 -- conteo que parece correcto y no lo es: un mismo comprador opera en
 -- varias plazas, así que la columna suma vínculos cliente-tienda y no
--- personas (los 903 compradores generan 3.124 vínculos). Sumar las
--- cinco filas da 3.124, no 903.
+-- personas (los 902 compradores generan 3.123 vínculos). Sumar las
+-- cinco filas da 3.123, no 902.
 --
 -- Además, el cruce no aportaba señal: la participación de cada segmento
 -- en la facturación es prácticamente idéntica en las cinco plazas (Alto
@@ -313,7 +320,7 @@ GROUP BY
 -- adquisición es una dimensión del CLIENTE (cómo se lo captó), no del
 -- punto de venta (dónde compró): son cosas distintas y no se mezclan.
 --
--- pct_no_convertidos_total reparte los 97 no convertidos entre
+-- pct_no_convertidos_total reparte los 98 no convertidos entre
 -- canales. Resultado: el reparto es proporcional, de modo que la
 -- recomendación de primera compra no admite priorización por origen.
 -- ---------------------------------------------------------------------
@@ -429,8 +436,8 @@ SELECT
 FROM transacciones t;
 
 -- 10.4 · Umbral de riesgo efectivamente persistido. Si no delimita los
--- 234 días (percentil 70 calculado en Python), hay que corregir el
--- COMMENT de la columna y el informe. Esperado: 234 | 236 | 0.
+-- 233 días (percentil 70 calculado en Python), hay que corregir el
+-- COMMENT de la columna y el informe. Esperado: 233 | 234 | 0.
 SELECT
     MAX(CASE WHEN en_riesgo = 0 THEN recencia END) AS max_recencia_activo,
     MIN(CASE WHEN en_riesgo = 1 THEN recencia END) AS min_recencia_en_riesgo,

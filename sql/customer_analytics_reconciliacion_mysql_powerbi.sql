@@ -35,7 +35,7 @@ SELECT
     ROUND(COUNT(*) / COUNT(DISTINCT customer_id), 2) AS frecuencia_compra
 FROM transacciones;
 
--- Esperado: 1640308.39 | 8000 | 903 | 205.04 | 8.86
+-- Esperado: 1636931.76 | 7999 | 902 | 204.64 | 8.87
 
 -- ---------------------------------------------------------------------
 -- B.2.2 Serie anual y crecimiento interanual. Medida: Crecimiento 2025
@@ -58,8 +58,8 @@ SELECT ROUND(
 , 2) AS crecimiento_2025_vs_2024_pct
 FROM transacciones;
 
--- Esperado: 2023 541437.75 / 2661 / 743 - 2024 558883.32 / 2715 / 751 -
--- 2025 539987.32 / 2624 / 730. Crecimiento: -3.38
+-- Esperado: 2023 540936.27 / 2661 / 743 - 2024 558092.70 / 2714 / 750 -
+-- 2025 537902.79 / 2624 / 730. Crecimiento: -3.62
 
 -- ---------------------------------------------------------------------
 -- B.2.3 Distribución por segmento RFM. Medidas: Clientes Segmento, %
@@ -77,9 +77,9 @@ WHERE recencia <> 999
 GROUP BY segmento_rfm
 ORDER BY ltv_medio DESC;
 
--- Esperado: Alto 149 / 16.50 / 4591.61 / 30.6 / 22.38 - Medio 267 /
--- 29.57 / 2129.09 / 74.1 / 10.32 - Bajo 487 / 53.93 / 796.08 / 342.2 /
--- 3.92
+-- Esperado: Alto 149 / 16.52 / 4583.88 / 30.6 / 22.38 - Medio 266 /
+-- 29.49 / 2127.98 / 74.2 / 10.33 - Bajo 487 / 53.99 / 796.49 / 341.5 /
+-- 3.93
 
 -- ---------------------------------------------------------------------
 -- B.2.4 Participación de cada segmento en la facturación. Medida: %
@@ -95,12 +95,14 @@ JOIN clientes_rfm r ON r.customer_id = t.customer_id
 GROUP BY r.segmento_rfm
 ORDER BY revenue DESC;
 
--- Esperado: Alto 684149.79 / 41.71 - Medio 568467.12 / 34.66 - Bajo
--- 387691.48 / 23.64
+-- Esperado: Alto 682998.64 / 41.72 - Medio 566041.81 / 34.58 - Bajo
+-- 387891.31 / 23.70
 
 -- ---------------------------------------------------------------------
--- B.2.5 Clientes en riesgo y retención. Medidas: % Clientes en Riesgo, % Retención, Clientes
--- Activos, Clientes Inactivos (En Riesgo), Usuarios Sin Transacciones.
+-- B.2.5 Clientes en riesgo y activos. Medidas: % Clientes en Riesgo, % Clientes
+-- Activos, Clientes Activos, Clientes Inactivos (En Riesgo), Usuarios Sin
+-- Transacciones. % Clientes Activos es la proporción de compradores con
+-- recencia dentro del umbral; no es una tasa de retención entre períodos.
 -- ---------------------------------------------------------------------
 SELECT
     SUM(CASE WHEN en_riesgo = 0 AND recencia <> 999 THEN 1 ELSE 0 END) AS clientes_activos,
@@ -109,13 +111,13 @@ SELECT
     ROUND(100 * SUM(CASE WHEN en_riesgo = 1 THEN 1 ELSE 0 END)
               / SUM(CASE WHEN recencia <> 999 THEN 1 ELSE 0 END), 2)     AS pct_en_riesgo,
     ROUND(100 * SUM(CASE WHEN en_riesgo = 0 AND recencia <> 999 THEN 1 ELSE 0 END)
-              / SUM(CASE WHEN recencia <> 999 THEN 1 ELSE 0 END), 2)     AS pct_retencion
+              / SUM(CASE WHEN recencia <> 999 THEN 1 ELSE 0 END), 2)     AS pct_activos
 FROM clientes_rfm;
 
--- Esperado: 634 | 269 | 97 | 29.79 | 70.21
+-- Esperado: 631 | 271 | 98 | 30.04 | 69.96
 
 -- ---------------------------------------------------------------------
--- B.2.6 Clientes en riesgo por segmento. Verifica la distribución 0% / 0% / 55,24%
+-- B.2.6 Clientes en riesgo por segmento. Verifica la distribución 0% / 0% / 55,65%
 -- del apartado 7.3.
 -- ---------------------------------------------------------------------
 SELECT
@@ -127,8 +129,8 @@ FROM clientes_rfm
 WHERE recencia <> 999
 GROUP BY segmento_rfm;
 
--- Esperado: Alto 149 / 0 / 0.00 - Medio 267 / 0 / 0.00 - Bajo 487 / 269
--- / 55.24
+-- Esperado: Alto 149 / 0 / 0.00 - Medio 266 / 0 / 0.00 - Bajo 487 / 271
+-- / 55.65
 
 -- ---------------------------------------------------------------------
 -- B.2.7 Facturación en riesgo. Medida: % Revenue en Riesgo. Es
@@ -143,7 +145,7 @@ SELECT
 FROM transacciones t
 JOIN clientes_rfm r ON r.customer_id = t.customer_id;
 
--- Esperado: 182754.98 | 1640308.39 | 11.14
+-- Esperado: 190444.17 | 1636931.76 | 11.63
 
 -- ---------------------------------------------------------------------
 -- B.2.8 Desempeño por tienda y canal. Único desglose por plaza admitido:
@@ -165,15 +167,15 @@ JOIN clientes_rfm r  ON r.customer_id = t.customer_id
 GROUP BY ti.nombre
 ORDER BY revenue DESC;
 
--- Esperado: Web 373871.91 / 204.19 / -3.50 / 11.41 - Sevilla 328398.66 /
--- 202.47 / -8.09 / 11.26 - Barcelona 314836.91 / 205.64 / -5.09 / 8.99 -
--- Madrid 313477.52 / 205.56 / -3.39 / 11.90 - Valencia 309723.39 /
--- 207.73 / +3.83 / 12.12
+-- Esperado: Web 372561.79 / 203.47 / -3.79 / 12.06 - Sevilla 327595.02 /
+-- 202.09 / -8.68 / 11.70 - Barcelona 313822.12 / 204.98 / -5.35 / 9.32 -
+-- Madrid 313477.52 / 205.56 / -3.39 / 12.61 - Valencia 309475.31 /
+-- 207.56 / +3.83 / 12.41
 
 -- ---------------------------------------------------------------------
--- B.2.9 Defensa estadística del umbral de riesgo. Verifica que los 234
+-- B.2.9 Defensa estadística del umbral de riesgo. Verifica que los 233
 -- días corresponden al percentil 70 de la distribución de recencia sobre
--- la base compradora (903 clientes, recencia al 01/01/2026).
+-- la base compradora (902 clientes, recencia al 01/01/2026).
 -- ---------------------------------------------------------------------
 SELECT
     COUNT(*)                       AS compradores,
@@ -181,13 +183,15 @@ SELECT
     MAX(recencia)                  AS recencia_max,
     ROUND(AVG(recencia), 1)        AS recencia_media,
     ROUND(STDDEV_POP(recencia), 1) AS recencia_desvio,
-    ROUND(100 * SUM(CASE WHEN recencia <= 234 THEN 1 ELSE 0 END)
+    ROUND(100 * SUM(CASE WHEN recencia <= 233 THEN 1 ELSE 0 END)
               / COUNT(*), 2)       AS pct_bajo_umbral
 FROM clientes_rfm
 WHERE recencia <> 999;
 
--- Esperado: 903 | 1 | 1096 | 211.5 | 242.3 | 70.21. El 70,21% confirma
--- que 234 días es el percentil 70 (valor exacto calculado en Python).
+-- Esperado: 902 | 1 | 1096 | 211.3 | 242.3 | 69.96. Con interpolación
+-- lineal el P70 es 233,7 días y se trunca a 233: el 69,96% queda a o por
+-- debajo del umbral. Con 234 quedarían fuera del riesgo tres clientes con
+-- recencia exacta de 234 días (detalle en el notebook 03).
 
 -- ---------------------------------------------------------------------
 -- B.2.10 No aditividad de los conteos de cliente por tienda. Evidencia
@@ -205,6 +209,20 @@ FROM (
     GROUP BY store_id
 ) x;
 
--- Esperado: 3124 | 903 | 3.46. Un mismo cliente opera en 3,46 plazas en
+-- Esperado: 3123 | 902 | 3.46. Un mismo cliente opera en 3,46 plazas en
 -- promedio, de modo que cualquier conteo de clientes desglosado por
 -- tienda lo registraría varias veces.
+
+-- ---------------------------------------------------------------------
+-- B.2.11 Clientes prioritarios. Medidas: Clientes Prioritarios, Revenue
+-- Clientes Prioritarios, % Valor en Riesgo en Prioritarios. Requiere la
+-- vista v_retencion_prioridad (views_customer_analytics.sql).
+-- ---------------------------------------------------------------------
+SELECT
+    SUM(es_prioritario)                                                AS clientes_prioritarios,
+    ROUND(SUM(CASE WHEN es_prioritario = 1 THEN monetario ELSE 0 END), 2) AS revenue_prioritarios,
+    ROUND(100 * SUM(CASE WHEN es_prioritario = 1 THEN monetario ELSE 0 END)
+              / SUM(monetario), 2)                                     AS pct_valor_en_riesgo
+FROM v_retencion_prioridad;
+
+-- Esperado: 81 | 119757.77 | 62.88

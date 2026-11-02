@@ -97,7 +97,7 @@ LINES TERMINATED BY '\r\n'
 IGNORE 1 ROWS
 (transaction_id, customer_id, product_id, store_id, cantidad, importe, fecha);
 
--- Control 1 · Esperado: 5 | 1000 | 48 | 8000. Si alguno da 0, falló el LOAD DATA.
+-- Control 1 · Esperado: 5 | 1000 | 48 | 7999. Si alguno da 0, falló el LOAD DATA.
 SELECT
     (SELECT COUNT(*) FROM stg_tiendas)       AS stg_tiendas,
     (SELECT COUNT(*) FROM stg_clientes)      AS stg_clientes,
@@ -212,8 +212,8 @@ WHERE NULLIF(TRIM(transaction_id), '') IS NOT NULL;
 -- PASO 4: SNAPSHOT RFM
 -- Origen: clientes_rfm.csv (03_construccion_rfm.ipynb). Segmentación y
 -- en_riesgo se calculan una única vez en Python; MySQL solo los
--- persiste. Umbral de riesgo: percentil 70 de la recencia de los 903
--- compradores al 2026-01-01 = 234 días.
+-- persiste. Umbral de riesgo: percentil 70 de la recencia de los 902
+-- compradores al 2026-01-01 = 233 días.
 -- ================================================================
 
 CREATE TABLE clientes_rfm (
@@ -222,7 +222,7 @@ CREATE TABLE clientes_rfm (
     frecuencia     INT           NOT NULL,
     monetario      DECIMAL(10,2) NOT NULL,
     segmento_rfm   VARCHAR(20)   NOT NULL,
-    en_riesgo      TINYINT       NOT NULL COMMENT '1 = en riesgo (recencia > P70 = 234 días al 2026-01-01); 0 = activo o sin transacciones',
+    en_riesgo      TINYINT       NOT NULL COMMENT '1 = en riesgo (recencia > P70 = 233 días al 2026-01-01); 0 = activo o sin transacciones',
     fecha_calculo  DATE          NOT NULL,
     CONSTRAINT pk_clientes_rfm PRIMARY KEY (customer_id),
     CONSTRAINT fk_rfm_cliente  FOREIGN KEY (customer_id) REFERENCES clientes(customer_id)
@@ -240,7 +240,8 @@ IGNORE 1 ROWS
 -- PASO 5: CONTROLES FINALES
 -- ================================================================
 
--- Control 2 · Filas. Esperado: 5 | 1000 | 48 | 8000 | 1000
+-- Control 2 · Filas. Esperado: 5 | 1000 | 48 | 7999 | 1000
+--   · 7999 transacciones: el CSV limpio excluye la devolución sin compra de C0231 (informe, 4.2).
 SELECT
     (SELECT COUNT(*) FROM tiendas)       AS tiendas,
     (SELECT COUNT(*) FROM clientes)      AS clientes,
@@ -248,23 +249,23 @@ SELECT
     (SELECT COUNT(*) FROM transacciones) AS transacciones,
     (SELECT COUNT(*) FROM clientes_rfm)  AS clientes_rfm;
 
--- Control 3 · Cifras de cabecera. Esperado: 903 | 1640308.39 | 205.04
+-- Control 3 · Cifras de cabecera. Esperado: 902 | 1636931.76 | 204.64
 SELECT
     COUNT(DISTINCT customer_id) AS compradores,
     ROUND(SUM(importe), 2)      AS revenue_total,
     ROUND(AVG(importe), 2)      AS ticket_medio
 FROM transacciones;
 
--- Control 4 · Segmentos. Esperado: Alto 149 / Medio 267 / Bajo 487 / Sin Transacciones 97
+-- Control 4 · Segmentos. Esperado: Alto 149 / Medio 266 / Bajo 487 / Sin Transacciones 98
 SELECT segmento_rfm, COUNT(*) AS clientes
 FROM clientes_rfm
 GROUP BY segmento_rfm
 ORDER BY FIELD(segmento_rfm, 'Alto Valor', 'Medio Valor', 'Bajo Valor', 'Sin Transacciones');
 
--- Control 5 · Snapshot y clientes en riesgo. Esperado: 2026-01-01 | 1 | 269 | 29.79 | 234 | 236 | 0
+-- Control 5 · Snapshot y clientes en riesgo. Esperado: 2026-01-01 | 1 | 271 | 30.04 | 233 | 234 | 0
 --   · dias_desde_ultima_compra = 1: la fecha de referencia es la última transacción + 1 día.
---   · 269 en riesgo sobre 903 compradores. Si da 267, el CSV de Uploads es el anterior.
---   · 234 / 236: recencia máxima de un activo y mínima de uno en riesgo (el umbral persistido).
+--   · 271 en riesgo sobre 902 compradores. Si da otra cifra, el CSV de Uploads es una versión anterior.
+--   · 233 / 234: recencia máxima de un activo y mínima de uno en riesgo (el umbral persistido).
 --   · 0: ningún cliente sin transacciones (recencia 999) figura en riesgo.
 SELECT
     MAX(r.fecha_calculo)                                              AS fecha_calculo,
