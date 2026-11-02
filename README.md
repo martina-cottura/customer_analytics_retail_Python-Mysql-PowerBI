@@ -4,7 +4,7 @@ Análisis de clientes de una cadena de retail deportivo con cuatro tiendas físi
 
 El proyecto responde a una pregunta de negocio concreta: **cómo se distribuye el valor de la cartera y a qué clientes inactivos conviene contactar primero**. Es un análisis descriptivo, con una foto de la cartera al **1/1/2026** construida a partir del historial 2023-2025.
 
-> **Los datos son sintéticos.** Cumbres Outdoor & Deportes es una empresa ficticia. El dataset (1.000 clientes, 8.000 transacciones, 5 puntos de venta, 2023-2025) se generó en Python con errores de calidad introducidos a propósito para trabajar la limpieza.
+> **Los datos son sintéticos.** Cumbres Outdoor & Deportes es una empresa ficticia. El dataset (1.000 clientes, 8.000 transacciones en origen y 7.999 tras la limpieza, 5 puntos de venta, 2023-2025) se generó en Python con errores de calidad introducidos a propósito para trabajar la limpieza.
 
 ---
 
@@ -19,7 +19,7 @@ Los datos son sintéticos: se generaron en Python (`python/notebooks/01_generaci
 | ERP | `productos.csv` | Catálogo: categoría y precio base | 48 |
 | ERP | `tiendas.csv` | Puntos de venta: cuatro tiendas físicas y el canal online | 5 |
 
-Saber de qué sistema sale cada tabla ayuda a leer los resultados. El CRM registra a un cliente cuando se da de alta, aunque nunca compre: por eso hay 97 clientes sin transacciones. El ERP registra una línea por venta, y ahí aparecen los errores típicos de carga operativa, como las 240 transacciones sin punto de venta. Esos errores se introdujeron a propósito en el generador para trabajar la limpieza como con datos reales.
+Saber de qué sistema sale cada tabla ayuda a leer los resultados. El CRM registra a un cliente cuando se da de alta, aunque nunca compre: por eso hay 98 clientes sin transacciones. El ERP registra una línea por venta, y ahí aparecen los errores típicos de carga operativa, como las 240 transacciones sin punto de venta. Esos errores se introdujeron a propósito en el generador para trabajar la limpieza como con datos reales.
 
 ---
 
@@ -33,7 +33,7 @@ Saber de qué sistema sale cada tabla ayuda a leer los resultados. El CRM regist
 
 ![Análisis de clientes](assets/dashboard_analisis_clientes.png)
 
-**3. ¿A quién reactivar primero?** Los 269 clientes en riesgo ordenados por facturación histórica, con los 81 prioritarios.
+**3. ¿A quién reactivar primero?** Los 271 clientes en riesgo ordenados por facturación histórica, con los 81 prioritarios.
 
 ![Priorización](assets/dashboard_priorizacion.png)
 
@@ -43,12 +43,12 @@ Saber de qué sistema sale cada tabla ayuda a leer los resultados. El CRM regist
 
 | | Cifra | Lectura |
 |---|---|---|
-| Facturación 2023-2025 | €1.640.308 | 903 de los 1.000 clientes registrados compraron al menos una vez. 2025 cierra un 3,4% por debajo de 2024 porque compraron menos clientes (751 → 730), no por precio ni frecuencia. |
+| Facturación 2023-2025 | €1.636.932 | 902 de los 1.000 clientes registrados compraron al menos una vez. 2025 cierra un 3,6% por debajo de 2024 porque compraron menos clientes (750 → 730), no por precio ni frecuencia. |
 | Concentración del valor | 16,5% → 41,7% | Los 149 clientes de Alto Valor generan el 41,7% de la facturación. |
-| Qué explica el valor | 22,4 vs 3,9 compras | Alto Valor compra casi 6 veces más seguido que Bajo Valor, con un ticket casi igual en los tres segmentos (~€205). La diferencia es de frecuencia, no de gasto por compra. |
-| Clientes en riesgo | 269 (29,79%) | Más de 234 días sin comprar al 1/1/2026. Son muchos clientes pero poco valor: el 11,14% de la facturación histórica (€182.755). |
-| Priorización | 81 clientes → 62,7% | El 30% de los clientes en riesgo con mayor facturación histórica concentra €114.670, el 62,7% del valor en riesgo. Una campaña dirigida a 81 clientes cubre casi dos tercios de ese valor. |
-| Registros sin compra | 97 (9,7%) | Clientes captados que nunca compraron. Oportunidad de ciclo corto pero acotada (del orden de €6.600 si convirtiera un tercio). |
+| Qué explica el valor | 22,4 vs 3,9 compras | Alto Valor compra casi 6 veces más seguido que Bajo Valor, con un ticket casi igual en los tres segmentos (~€205). En estos datos la diferencia es de frecuencia, no de gasto por compra, pero es en buena parte un efecto del generador: el importe de cada compra no depende del cliente. |
+| Clientes en riesgo | 271 (30,04%) | Más de 233 días sin comprar al 1/1/2026. Son muchos clientes pero poco valor: el 11,63% de la facturación histórica (€190.444). |
+| Priorización | 81 clientes → 62,9% | El 30% de los clientes en riesgo con mayor facturación histórica concentra €119.758, el 62,9% del valor en riesgo. Una campaña dirigida a 81 clientes cubre casi dos tercios de ese valor. |
+| Registros sin compra | 98 (9,8%) | Clientes captados que nunca compraron. Oportunidad de ciclo corto pero acotada (del orden de €6.700 si convirtiera un tercio). |
 
 Los 81 clientes prioritarios pertenecen todos al segmento **Bajo Valor**, y no por casualidad: la recencia entra tanto en el score RFM como en el umbral de riesgo, así que un cliente inactivo cae en Bajo Valor aunque haya comprado mucho en el pasado. Es una consecuencia del diseño, no un hallazgo (informe técnico, apartado 5.5).
 
@@ -56,10 +56,11 @@ Los 81 clientes prioritarios pertenecen todos al segmento **Bajo Valor**, y no p
 
 ## Limitaciones
 
-- **"En riesgo" es un criterio de priorización, no una predicción.** El umbral de 234 días es el percentil 70 de la recencia de los 903 compradores. No hay modelo de abandono ni validación del umbral: el dataset no registra bajas, así que el indicador mide inactividad elevada, no abandono.
-- **La facturación en riesgo es histórica.** Los €182.755 y €114.670 son lo que esos clientes compraron en 2023-2025, no lo que se puede recuperar.
+- **"En riesgo" es un criterio de priorización, no una predicción.** El umbral de 233 días es el percentil 70 de la recencia de los 902 compradores. No hay modelo de abandono: el dataset no registra bajas, así que el indicador mide inactividad elevada. Aplicado a la foto de un año antes (1/1/2025), los clientes que marcaba en riesgo volvieron a comprar en 2025 menos que los activos (63% frente a 87%), pero la mayoría volvió (anexo D del informe técnico).
+- **La facturación en riesgo es histórica.** Los €190.444 y €119.758 son lo que esos clientes compraron en 2023-2025, no lo que se puede recuperar.
 - **Foto estática.** La segmentación RFM se calcula una vez al 1/1/2026 y no muestra cómo se mueven los clientes entre segmentos.
-- **Datos sintéticos.** Algunas regularidades, como el ticket casi idéntico entre segmentos y tiendas, vienen del generador. Las conclusiones tendrían que revalidarse con datos reales.
+- **Datos sintéticos.** Algunas regularidades vienen del generador: el importe de cada transacción no depende del cliente, del producto ni de la cantidad, y por eso el ticket es casi idéntico entre segmentos y tiendas. Las conclusiones tendrían que revalidarse con datos reales.
+- **Errores que un umbral no detecta.** La corrección de importes multiplicados por 8 se apoyó en un umbral de €400, que deja pasar el error cuando el importe original era bajo. Los 14 casos que quedaban se identificaron comparando con el generador, algo que con datos reales no sería posible (informe técnico, apartado 4.3).
 - **Sin costos ni márgenes.** Las cifras dimensionan oportunidades sobre facturación, no su rentabilidad.
 - **Decisiones de limpieza con efecto en los resultados.** Las 240 transacciones sin punto de venta se imputaron al canal online, lo que explica buena parte de su liderazgo en facturación. Es un supuesto operativo (en tienda física la caja registra el punto de venta; el pedido online se integra al ERP desde otro sistema) que este dataset no permite confirmar. Con datos reales lo validaría con el medio de pago o el sistema de origen del pedido y, si no se confirmara, las dejaría como "Sin asignar".
 
