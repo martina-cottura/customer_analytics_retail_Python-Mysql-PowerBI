@@ -88,7 +88,7 @@ Cada herramienta tiene un rol definido:
 ## Estructura del repositorio
 
 ```
-Customer_analytics/
+customer_analytics_retail_Python-Mysql-PowerBI/
 ├── data/
 │   ├── raw/                  # CSV originales generados (sin modificar)
 │   └── clean/                # CSV limpios + clientes_rfm.csv
@@ -105,8 +105,9 @@ Customer_analytics/
 │   └── customer_analytics.pbix
 ├── tmdl_export/              # modelo semántico en TMDL (medidas DAX legibles)
 ├── documentos/
-│   ├── Informe_técnico_customer_analytics.pdf  # decisiones, validaciones y anexos
-│   └── Informe_negocio.pdf   # decisiones para dirección (4 páginas)
+│   ├── Informe_tecnico_customer_analytics.pdf  # decisiones, validaciones y anexos
+│   ├── Informe_negocio.pdf                     # decisiones para dirección comercial
+│   └── Presentacion_decisiones_cartera.pdf     # presentación de resultados para dirección y marketing
 ├── assets/                   # capturas y PDF del dashboard, diagramas
 └── requirements.txt
 ```
@@ -140,9 +141,11 @@ Si solo querés leer las medidas DAX sin abrir Power BI, están en `tmdl_export/
 
 ## Documentación
 
-El **informe técnico** (`documentos/Informe_técnico_customer_analytics.pdf`) recoge el razonamiento detrás de cada decisión: diagnóstico de calidad del dato, construcción del RFM y del umbral, modelo relacional, reconciliación MySQL–Power BI, hallazgos, recomendaciones y limitaciones.
+El **informe técnico** (`documentos/Informe_tecnico_customer_analytics.pdf`) recoge el razonamiento detrás de cada decisión: diagnóstico de calidad del dato, construcción del RFM y del umbral, modelo relacional, reconciliación MySQL–Power BI, hallazgos, recomendaciones y limitaciones.
 
 El **informe de negocio** (`documentos/Informe_negocio.pdf`) está pensado para dirección comercial: qué decisiones permite tomar el análisis, con qué datos contamos, qué datos faltan y en qué seguir trabajando.
+
+La **presentación** (`documentos/Presentacion_decisiones_cartera.pdf`) resume el análisis en 11 diapositivas para una charla con dirección y marketing: contexto, unidad de análisis, hallazgos y a quién contactar primero.
 
 ---
 
