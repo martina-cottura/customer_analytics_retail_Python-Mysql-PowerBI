@@ -3,7 +3,7 @@
 -- Base: customer_analytics (MySQL)
 --
 -- Criterio de la capa: las vistas agregan, cruzan y exponen; no
--- calculan lógica de negocio. La segmentación RFM y el flag de churn se
+-- calculan lógica de negocio. La segmentación RFM y el indicador de riesgo se
 -- calculan una sola vez en Python y se persisten en clientes_rfm.
 --
 -- Power BI NO se conecta a estas vistas: el modelo semántico importa
@@ -46,7 +46,7 @@ SELECT
     t.importe,
     CASE WHEN t.importe < 0 THEN 1 ELSE 0 END           AS es_devolucion,
     r.segmento_rfm,
-    r.churn_riesgo
+    r.en_riesgo
 FROM transacciones t
 LEFT JOIN clientes     c ON t.customer_id = c.customer_id
 LEFT JOIN tiendas      s ON t.store_id    = s.store_id
@@ -71,11 +71,11 @@ SELECT
     r.frecuencia,
     r.monetario,
     r.segmento_rfm,
-    r.churn_riesgo,
+    r.en_riesgo,
     r.fecha_calculo,
     -- Separa al cliente sin historial de compra (recencia = 999,
     -- placeholder) del comprador real. Evita que el no convertido se
-    -- cuele en cualquier cálculo de churn.
+    -- cuele en cualquier cálculo de clientes en riesgo.
     CASE WHEN r.recencia = 999 THEN 0 ELSE 1 END AS es_comprador
 FROM clientes c
 LEFT JOIN clientes_rfm r
@@ -122,8 +122,8 @@ SELECT
                    / SUM(SUM(CASE WHEN recencia <> 999
                                   THEN 1 ELSE 0 END)) OVER (), 0), 2)
                                                                     AS indice_concentracion,
-    SUM(churn_riesgo)                                               AS clientes_en_riesgo,
-    ROUND(100.0 * SUM(churn_riesgo)
+    SUM(en_riesgo)                                               AS clientes_en_riesgo,
+    ROUND(100.0 * SUM(en_riesgo)
           / NULLIF(SUM(CASE WHEN recencia <> 999 THEN 1 ELSE 0 END), 0), 1)
                                                                     AS pct_en_riesgo,
     MAX(fecha_calculo)                                              AS fecha_snapshot
@@ -180,7 +180,7 @@ GROUP BY YEAR(t.fecha), r.segmento_rfm;
 -- merecen la misma inversión de retención. La vista ordena por
 -- facturación histórica y alimenta la recomendación del capítulo 8.
 --
--- Usa el flag churn_riesgo persistido, NO un umbral de días escrito a
+-- Usa el flag en_riesgo persistido, NO un umbral de días escrito a
 -- mano en SQL. Si el umbral cambia en Python, la vista sigue correcta.
 --
 -- pct_valor_en_riesgo y decil_valor permiten cortar la lista por
@@ -205,7 +205,7 @@ SELECT
     r.fecha_calculo
 FROM clientes c
 JOIN clientes_rfm r ON c.customer_id = r.customer_id
-WHERE r.churn_riesgo = 1
+WHERE r.en_riesgo = 1
   AND r.recencia <> 999;
 
 -- =====================================================================
@@ -331,7 +331,7 @@ SELECT
                                                                      AS pct_no_convertidos_total,
     ROUND(AVG(CASE WHEN r.recencia <> 999 THEN r.monetario END), 2)  AS ltv_promedio_comprador,
     ROUND(SUM(r.monetario), 2)                                       AS valor_total,
-    SUM(r.churn_riesgo)                                              AS clientes_en_riesgo
+    SUM(r.en_riesgo)                                              AS clientes_en_riesgo
 FROM clientes c
 LEFT JOIN clientes_rfm r ON c.customer_id = r.customer_id
 GROUP BY c.canal_adquisicion;
@@ -342,7 +342,6 @@ DROP VIEW IF EXISTS
     v_desempen_canal_segmento,
     v_desempeno_tienda_segmento,
     v_categoria_producto,
-    v_churn_segmento,
     v_evolucion_mensual,
     v_no_conversion_canal,
     v_ticket_canal,
@@ -429,16 +428,16 @@ SELECT
     DATEDIFF((SELECT MAX(fecha_calculo) FROM clientes_rfm), MAX(t.fecha)) AS dias_diferencia
 FROM transacciones t;
 
--- 10.4 · Umbral de churn efectivamente persistido. Si no delimita los
+-- 10.4 · Umbral de riesgo efectivamente persistido. Si no delimita los
 -- 234 días (percentil 70 calculado en Python), hay que corregir el
 -- COMMENT de la columna y el informe. Esperado: 234 | 236 | 0.
 SELECT
-    MAX(CASE WHEN churn_riesgo = 0 THEN recencia END) AS max_recencia_activo,
-    MIN(CASE WHEN churn_riesgo = 1 THEN recencia END) AS min_recencia_en_riesgo,
-    SUM(CASE WHEN churn_riesgo = 1 AND recencia = 999 THEN 1 ELSE 0 END)
+    MAX(CASE WHEN en_riesgo = 0 THEN recencia END) AS max_recencia_activo,
+    MIN(CASE WHEN en_riesgo = 1 THEN recencia END) AS min_recencia_en_riesgo,
+    SUM(CASE WHEN en_riesgo = 1 AND recencia = 999 THEN 1 ELSE 0 END)
                                                       AS inconsistencias_999
 FROM clientes_rfm
-WHERE recencia <> 999 OR churn_riesgo = 1;
+WHERE recencia <> 999 OR en_riesgo = 1;
 
 -- 10.5 · Distribución de recencia por tramos mensuales: base empírica
 -- del umbral, complementaria de la consulta B.2.9 del informe.
@@ -461,21 +460,21 @@ UNION ALL SELECT 'Ticket medio (EUR)',   ROUND(SUM(importe) / COUNT(DISTINCT tra
 UNION ALL SELECT 'Frecuencia por comprador',
        ROUND(COUNT(*) / COUNT(DISTINCT customer_id), 2) FROM transacciones;
 
--- 10.7 · Churn: las dos lecturas posibles, explicitadas. La diferencia
+-- 10.7 · Clientes en riesgo: las dos lecturas posibles, explicitadas. La diferencia
 -- cambia el titular del dashboard; el informe usa la de compradores.
 SELECT
     'sobre compradores'                                              AS alcance,
-    SUM(churn_riesgo)                                                AS en_riesgo,
+    SUM(en_riesgo)                                                AS en_riesgo,
     SUM(CASE WHEN recencia <> 999 THEN 1 ELSE 0 END)                 AS base,
-    ROUND(100.0 * SUM(churn_riesgo)
+    ROUND(100.0 * SUM(en_riesgo)
           / NULLIF(SUM(CASE WHEN recencia <> 999 THEN 1 ELSE 0 END), 0), 2) AS pct
 FROM clientes_rfm
 UNION ALL
 SELECT
     'sobre base registrada',
-    SUM(churn_riesgo),
+    SUM(en_riesgo),
     COUNT(*),
-    ROUND(100.0 * SUM(churn_riesgo) / COUNT(*), 2)
+    ROUND(100.0 * SUM(en_riesgo) / COUNT(*), 2)
 FROM clientes_rfm;
 
 -- 10.8 · Inventario: deben ser 8 vistas. No debe figurar

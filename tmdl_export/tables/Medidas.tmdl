@@ -49,7 +49,7 @@ table Medidas
 			DIVIDE(
 			    CALCULATE(
 			        DISTINCTCOUNT(clientes_rfm[customer_id]),
-			        clientes_rfm[churn_riesgo] = 1,
+			        clientes_rfm[en_riesgo] = 1,
 			        clientes_rfm[recencia] <> 999
 			    ),
 			    CALCULATE(
@@ -59,7 +59,7 @@ table Medidas
 			    0
 			)
 		formatString: 0.00%
-		displayFolder: Medidas\Churn and Retention
+		displayFolder: Medidas\Clientes en riesgo y retención
 		lineageTag: fbe6971e-9518-41c5-b548-f56a4f27d0e2
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
@@ -71,12 +71,12 @@ table Medidas
 			    [Clientes Activos] + [Clientes Inactivos (En Riesgo)],
 			    0
 			)
-		displayFolder: Medidas\Churn and Retention
+		displayFolder: Medidas\Clientes en riesgo y retención
 		lineageTag: cef03e74-e341-472c-b2fc-bd2de27f28d5
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	/// Clientes activos (churn_riesgo = 0, excluye sin transacciones) en el contexto de filtro activo. El umbral (P70 = 234 días) vive en Python; DAX solo lee el flag.
+	/// Clientes activos (en_riesgo = 0, excluye sin transacciones) en el contexto de filtro activo. El umbral (P70 = 234 días) vive en Python; DAX solo lee el flag.
 	measure 'Clientes Activos' =
 			VAR ClientesEnContexto =
 			    CALCULATETABLE(
@@ -88,14 +88,14 @@ table Medidas
 			CALCULATE(
 			    COUNTROWS(clientes_rfm),
 			    KEEPFILTERS(clientes_rfm[customer_id] IN ClientesEnContexto),
-			    clientes_rfm[churn_riesgo] = 0,
+			    clientes_rfm[en_riesgo] = 0,
 			    clientes_rfm[recencia] <> 999
 			)
 		formatString: 0
-		displayFolder: Medidas\Churn and Retention
+		displayFolder: Medidas\Clientes en riesgo y retención
 		lineageTag: 9d93beb6-db8f-4afa-a22a-143ef34ae5eb
 
-	/// Clientes en riesgo (churn_riesgo = 1, recencia > P70 = 234 días) en el contexto de filtro activo. El umbral vive en Python; DAX solo lee el flag.
+	/// Clientes en riesgo (en_riesgo = 1, recencia > P70 = 234 días) en el contexto de filtro activo. El umbral vive en Python; DAX solo lee el flag.
 	measure 'Clientes Inactivos (En Riesgo)' =
 			VAR ClientesEnContexto =
 			    CALCULATETABLE(
@@ -107,11 +107,11 @@ table Medidas
 			CALCULATE(
 			    COUNTROWS(clientes_rfm),
 			    KEEPFILTERS(clientes_rfm[customer_id] IN ClientesEnContexto),
-			    clientes_rfm[churn_riesgo] = 1,
+			    clientes_rfm[en_riesgo] = 1,
 			    clientes_rfm[recencia] <> 999
 			)
 		formatString: 0
-		displayFolder: Medidas\Churn and Retention
+		displayFolder: Medidas\Clientes en riesgo y retención
 		lineageTag: 86b9ac10-2e1d-4a5a-be8c-0ffa04c1f4bd
 
 	/// Valor de vida útil promedio por cliente sobre la cartera completa. Snapshot acumulado: neutraliza Calendario y tiendas, ya que el LTV es un valor de vida por cliente y la tabla clientes_rfm tiene granularidad cliente, no cliente-tienda. Un mismo cliente opera en varias unidades de negocio, de modo que un LTV por tienda contaría al mismo cliente en varias cajas.
@@ -179,7 +179,7 @@ table Medidas
 			)
 			```
 		formatString: 0
-		displayFolder: Medidas\Churn and Retention
+		displayFolder: Medidas\Clientes en riesgo y retención
 		lineageTag: cf6e1db1-7ed7-476c-b652-ae70d449c24a
 
 	measure 'Crecimiento 2025 vs 2024' =
@@ -228,10 +228,10 @@ table Medidas
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	/// Participación en la facturación total de los clientes en riesgo (churn_riesgo = 1). Es alta en volumen de clientes (29,79%) pero baja en valor (11,14% de la facturación). Snapshot: REMOVEFILTERS(Calendario). Responde al slicer de Tienda.
+	/// Participación en la facturación total de los clientes en riesgo (en_riesgo = 1). Es alta en volumen de clientes (29,79%) pero baja en valor (11,14% de la facturación). Snapshot: REMOVEFILTERS(Calendario). Responde al slicer de Tienda.
 	measure '% Revenue en Riesgo' =
 			VAR ClientesRiesgo =
-			    CALCULATETABLE(VALUES(clientes_rfm[customer_id]), clientes_rfm[churn_riesgo] = 1)
+			    CALCULATETABLE(VALUES(clientes_rfm[customer_id]), clientes_rfm[en_riesgo] = 1)
 			VAR RevRiesgo =
 			    CALCULATE([Revenue Total], REMOVEFILTERS(Calendario), TREATAS(ClientesRiesgo, transacciones[customer_id]))
 			VAR RevTotal =
@@ -239,7 +239,7 @@ table Medidas
 			RETURN
 			DIVIDE(RevRiesgo, RevTotal)
 		formatString: 0.00%
-		displayFolder: Medidas\Churn and Retention
+		displayFolder: Medidas\Clientes en riesgo y retención
 		lineageTag: b77fb49f-7aa5-4612-b5a2-1a6132567d47
 
 	/// Facturación histórica 2023-2025 (monetario) de los clientes en riesgo al 1/1/2026. Ignora filtros y selecciones sobre clientes_rfm, como el resto de las medidas de Priorización.
@@ -247,7 +247,7 @@ table Medidas
 			CALCULATE(
 			    SUM(clientes_rfm[monetario]),
 			    REMOVEFILTERS(clientes_rfm),
-			    clientes_rfm[churn_riesgo] = 1,
+			    clientes_rfm[en_riesgo] = 1,
 			    clientes_rfm[recencia] <> 999
 			)
 		formatString: €#,##0
@@ -260,7 +260,7 @@ table Medidas
 			    CALCULATE(
 			        COUNTROWS(clientes_rfm),
 			        REMOVEFILTERS(clientes_rfm),
-			        clientes_rfm[churn_riesgo] = 1,
+			        clientes_rfm[en_riesgo] = 1,
 			        clientes_rfm[recencia] <> 999
 			    )
 			RETURN
@@ -273,12 +273,12 @@ table Medidas
 	measure 'Ranking Valor en Riesgo' =
 			IF(
 			    HASONEVALUE(clientes_rfm[customer_id])
-			        && MAX(clientes_rfm[churn_riesgo]) = 1
+			        && MAX(clientes_rfm[en_riesgo]) = 1
 			        && MAX(clientes_rfm[recencia]) <> 999,
 			    RANKX(
 			        FILTER(
 			            ALL(clientes_rfm),
-			            clientes_rfm[churn_riesgo] = 1 && clientes_rfm[recencia] <> 999
+			            clientes_rfm[en_riesgo] = 1 && clientes_rfm[recencia] <> 999
 			        ),
 			        CALCULATE(SUM(clientes_rfm[monetario])),
 			        ,
@@ -295,7 +295,7 @@ table Medidas
 			VAR R =
 			    FILTER(
 			        ALL(clientes_rfm),
-			        clientes_rfm[churn_riesgo] = 1 && clientes_rfm[recencia] <> 999
+			        clientes_rfm[en_riesgo] = 1 && clientes_rfm[recencia] <> 999
 			    )
 			VAR Corte = ROUND(0.3 * COUNTROWS(R), 0)
 			VAR T =
@@ -312,7 +312,7 @@ table Medidas
 			    CALCULATE(
 			        SUM(clientes_rfm[monetario]),
 			        REMOVEFILTERS(clientes_rfm),
-			        clientes_rfm[churn_riesgo] = 1,
+			        clientes_rfm[en_riesgo] = 1,
 			        clientes_rfm[recencia] <> 999
 			    )
 			RETURN
@@ -336,7 +336,7 @@ table Medidas
 			    CALCULATE(
 			        COUNTROWS(clientes_rfm),
 			        REMOVEFILTERS(clientes_rfm),
-			        clientes_rfm[churn_riesgo] = 1,
+			        clientes_rfm[en_riesgo] = 1,
 			        clientes_rfm[recencia] <> 999
 			    )
 			RETURN
@@ -345,12 +345,12 @@ table Medidas
 		displayFolder: Medidas\Priorización
 		lineageTag: dcceb9c5-067e-4863-984f-c631242d46d9
 
-	/// Total de clientes en riesgo (churn_riesgo = 1, recencia > 234 días, excluye sin transacciones) al 1/1/2026. Ignora filtros y selecciones sobre clientes_rfm, como el resto de las medidas de Priorización: es el universo fijo de la página 3.
+	/// Total de clientes en riesgo (en_riesgo = 1, recencia > 234 días, excluye sin transacciones) al 1/1/2026. Ignora filtros y selecciones sobre clientes_rfm, como el resto de las medidas de Priorización: es el universo fijo de la página 3.
 	measure 'Clientes en Riesgo (Foto)' =
 			CALCULATE(
 			    COUNTROWS(clientes_rfm),
 			    REMOVEFILTERS(clientes_rfm),
-			    clientes_rfm[churn_riesgo] = 1,
+			    clientes_rfm[en_riesgo] = 1,
 			    clientes_rfm[recencia] <> 999
 			)
 		formatString: 0

@@ -211,8 +211,8 @@ WHERE NULLIF(TRIM(transaction_id), '') IS NOT NULL;
 -- ================================================================
 -- PASO 4: SNAPSHOT RFM
 -- Origen: clientes_rfm.csv (03_construccion_rfm.ipynb). Segmentación y
--- churn_riesgo se calculan una única vez en Python; MySQL solo los
--- persiste. Umbral de churn: percentil 70 de la recencia de los 903
+-- en_riesgo se calculan una única vez en Python; MySQL solo los
+-- persiste. Umbral de riesgo: percentil 70 de la recencia de los 903
 -- compradores al 2026-01-01 = 234 días.
 -- ================================================================
 
@@ -222,7 +222,7 @@ CREATE TABLE clientes_rfm (
     frecuencia     INT           NOT NULL,
     monetario      DECIMAL(10,2) NOT NULL,
     segmento_rfm   VARCHAR(20)   NOT NULL,
-    churn_riesgo   TINYINT       NOT NULL COMMENT '1 = en riesgo (recencia > P70 = 234 días al 2026-01-01); 0 = activo o sin transacciones',
+    en_riesgo      TINYINT       NOT NULL COMMENT '1 = en riesgo (recencia > P70 = 234 días al 2026-01-01); 0 = activo o sin transacciones',
     fecha_calculo  DATE          NOT NULL,
     CONSTRAINT pk_clientes_rfm PRIMARY KEY (customer_id),
     CONSTRAINT fk_rfm_cliente  FOREIGN KEY (customer_id) REFERENCES clientes(customer_id)
@@ -234,7 +234,7 @@ CHARACTER SET utf8mb4
 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
 LINES TERMINATED BY '\r\n'
 IGNORE 1 ROWS
-(customer_id, recencia, frecuencia, monetario, segmento_rfm, churn_riesgo, fecha_calculo);
+(customer_id, recencia, frecuencia, monetario, segmento_rfm, en_riesgo, fecha_calculo);
 
 -- ================================================================
 -- PASO 5: CONTROLES FINALES
@@ -261,7 +261,7 @@ FROM clientes_rfm
 GROUP BY segmento_rfm
 ORDER BY FIELD(segmento_rfm, 'Alto Valor', 'Medio Valor', 'Bajo Valor', 'Sin Transacciones');
 
--- Control 5 · Snapshot y churn. Esperado: 2026-01-01 | 1 | 269 | 29.79 | 234 | 236 | 0
+-- Control 5 · Snapshot y clientes en riesgo. Esperado: 2026-01-01 | 1 | 269 | 29.79 | 234 | 236 | 0
 --   · dias_desde_ultima_compra = 1: la fecha de referencia es la última transacción + 1 día.
 --   · 269 en riesgo sobre 903 compradores. Si da 267, el CSV de Uploads es el anterior.
 --   · 234 / 236: recencia máxima de un activo y mínima de uno en riesgo (el umbral persistido).
@@ -270,13 +270,13 @@ SELECT
     MAX(r.fecha_calculo)                                              AS fecha_calculo,
     DATEDIFF(MAX(r.fecha_calculo), (SELECT MAX(fecha) FROM transacciones))
                                                                       AS dias_desde_ultima_compra,
-    SUM(r.churn_riesgo)                                               AS en_riesgo,
-    ROUND(100 * SUM(r.churn_riesgo)
+    SUM(r.en_riesgo)                                               AS en_riesgo,
+    ROUND(100 * SUM(r.en_riesgo)
           / SUM(CASE WHEN r.recencia <> 999 THEN 1 ELSE 0 END), 2)    AS pct_en_riesgo,
-    MAX(CASE WHEN r.churn_riesgo = 0 AND r.recencia <> 999 THEN r.recencia END)
+    MAX(CASE WHEN r.en_riesgo = 0 AND r.recencia <> 999 THEN r.recencia END)
                                                                       AS max_recencia_activo,
-    MIN(CASE WHEN r.churn_riesgo = 1 THEN r.recencia END)             AS min_recencia_en_riesgo,
-    SUM(CASE WHEN r.churn_riesgo = 1 AND r.recencia = 999 THEN 1 ELSE 0 END)
+    MIN(CASE WHEN r.en_riesgo = 1 THEN r.recencia END)             AS min_recencia_en_riesgo,
+    SUM(CASE WHEN r.en_riesgo = 1 AND r.recencia = 999 THEN 1 ELSE 0 END)
                                                                       AS inconsistencias_999
 FROM clientes_rfm r;
 

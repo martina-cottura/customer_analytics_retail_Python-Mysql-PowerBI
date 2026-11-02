@@ -1,4 +1,4 @@
-customer_id,recencia,frecuencia,monetario,segmento_rfm,churn_riesgo,fecha_calculo
+customer_id,recencia,frecuencia,monetario,segmento_rfm,en_riesgo,fecha_calculo
 C0001,242,3,633.07,Bajo Valor,1,2026-01-01
 C0002,82,7,1279.16,Medio Valor,0,2026-01-01
 C0003,301,5,1140.96,Bajo Valor,1,2026-01-01

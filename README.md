@@ -65,6 +65,10 @@ Los 81 clientes prioritarios pertenecen todos al segmento **Bajo Valor**, y no p
 
 El detalle de cada limitación está en el capítulo 9 del informe técnico.
 
+### Próximo paso
+
+Pasar de la priorización a la predicción: un **modelo de abandono (churn)** que estime la probabilidad de que cada cliente deje de comprar. Para eso hace falta una definición observable de abandono (por ejemplo, ausencia de compras en un período posterior a la foto) y validar el modelo contra lo que efectivamente ocurrió. El indicador actual de "clientes en riesgo" no cumple ese rol: ordena contactos según la inactividad, no predice comportamiento.
+
 ---
 
 ## Arquitectura

@@ -99,30 +99,30 @@ ORDER BY revenue DESC;
 -- 387691.48 / 23.64
 
 -- ---------------------------------------------------------------------
--- B.2.5 Churn y retención. Medidas: % Churn, % Retención, Clientes
+-- B.2.5 Clientes en riesgo y retención. Medidas: % Clientes en Riesgo, % Retención, Clientes
 -- Activos, Clientes Inactivos (En Riesgo), Usuarios Sin Transacciones.
 -- ---------------------------------------------------------------------
 SELECT
-    SUM(CASE WHEN churn_riesgo = 0 AND recencia <> 999 THEN 1 ELSE 0 END) AS clientes_activos,
-    SUM(CASE WHEN churn_riesgo = 1                     THEN 1 ELSE 0 END) AS clientes_en_riesgo,
+    SUM(CASE WHEN en_riesgo = 0 AND recencia <> 999 THEN 1 ELSE 0 END) AS clientes_activos,
+    SUM(CASE WHEN en_riesgo = 1                     THEN 1 ELSE 0 END) AS clientes_en_riesgo,
     SUM(CASE WHEN recencia  = 999                     THEN 1 ELSE 0 END) AS sin_transacciones,
-    ROUND(100 * SUM(CASE WHEN churn_riesgo = 1 THEN 1 ELSE 0 END)
+    ROUND(100 * SUM(CASE WHEN en_riesgo = 1 THEN 1 ELSE 0 END)
               / SUM(CASE WHEN recencia <> 999 THEN 1 ELSE 0 END), 2)     AS pct_en_riesgo,
-    ROUND(100 * SUM(CASE WHEN churn_riesgo = 0 AND recencia <> 999 THEN 1 ELSE 0 END)
+    ROUND(100 * SUM(CASE WHEN en_riesgo = 0 AND recencia <> 999 THEN 1 ELSE 0 END)
               / SUM(CASE WHEN recencia <> 999 THEN 1 ELSE 0 END), 2)     AS pct_retencion
 FROM clientes_rfm;
 
 -- Esperado: 634 | 269 | 97 | 29.79 | 70.21
 
 -- ---------------------------------------------------------------------
--- B.2.6 Churn por segmento. Verifica la distribución 0% / 0% / 55,24%
+-- B.2.6 Clientes en riesgo por segmento. Verifica la distribución 0% / 0% / 55,24%
 -- del apartado 7.3.
 -- ---------------------------------------------------------------------
 SELECT
     segmento_rfm,
     COUNT(*)                                     AS clientes,
-    SUM(churn_riesgo)                            AS en_riesgo,
-    ROUND(100 * SUM(churn_riesgo) / COUNT(*), 2) AS pct_en_riesgo_segmento
+    SUM(en_riesgo)                            AS en_riesgo,
+    ROUND(100 * SUM(en_riesgo) / COUNT(*), 2) AS pct_en_riesgo_segmento
 FROM clientes_rfm
 WHERE recencia <> 999
 GROUP BY segmento_rfm;
@@ -131,14 +131,14 @@ GROUP BY segmento_rfm;
 -- / 55.24
 
 -- ---------------------------------------------------------------------
--- B.2.7 Facturación en riesgo de churn. Medida: % Revenue en Riesgo. Es
+-- B.2.7 Facturación en riesgo. Medida: % Revenue en Riesgo. Es
 -- la métrica que sostiene el hallazgo central del apartado 7.3: riesgo
 -- alto en clientes y bajo en facturación.
 -- ---------------------------------------------------------------------
 SELECT
-    ROUND(SUM(CASE WHEN r.churn_riesgo = 1 THEN t.importe ELSE 0 END), 2) AS revenue_en_riesgo,
+    ROUND(SUM(CASE WHEN r.en_riesgo = 1 THEN t.importe ELSE 0 END), 2) AS revenue_en_riesgo,
     ROUND(SUM(t.importe), 2)                                              AS revenue_total,
-    ROUND(100 * SUM(CASE WHEN r.churn_riesgo = 1 THEN t.importe ELSE 0 END)
+    ROUND(100 * SUM(CASE WHEN r.en_riesgo = 1 THEN t.importe ELSE 0 END)
               / SUM(t.importe), 2)                                        AS pct_revenue_en_riesgo
 FROM transacciones t
 JOIN clientes_rfm r ON r.customer_id = t.customer_id;
@@ -157,7 +157,7 @@ SELECT
     ROUND( ( SUM(CASE WHEN YEAR(t.fecha) = 2025 THEN t.importe ELSE 0 END)
            - SUM(CASE WHEN YEAR(t.fecha) = 2024 THEN t.importe ELSE 0 END) )
            / SUM(CASE WHEN YEAR(t.fecha) = 2024 THEN t.importe ELSE 0 END) * 100, 2) AS crecimiento_pct,
-    ROUND(100 * SUM(CASE WHEN r.churn_riesgo = 1 THEN t.importe ELSE 0 END)
+    ROUND(100 * SUM(CASE WHEN r.en_riesgo = 1 THEN t.importe ELSE 0 END)
               / SUM(t.importe), 2)      AS pct_revenue_en_riesgo
 FROM transacciones t
 JOIN tiendas      ti ON ti.store_id   = t.store_id
@@ -171,7 +171,7 @@ ORDER BY revenue DESC;
 -- 207.73 / +3.83 / 12.12
 
 -- ---------------------------------------------------------------------
--- B.2.9 Defensa estadística del umbral de churn. Verifica que los 234
+-- B.2.9 Defensa estadística del umbral de riesgo. Verifica que los 234
 -- días corresponden al percentil 70 de la distribución de recencia sobre
 -- la base compradora (903 clientes, recencia al 01/01/2026).
 -- ---------------------------------------------------------------------
