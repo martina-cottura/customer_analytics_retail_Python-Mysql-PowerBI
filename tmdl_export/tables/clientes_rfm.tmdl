@@ -47,7 +47,7 @@ table clientes_rfm
 
 		annotation SummarizationSetBy = Automatic
 
-	/// 1 = cliente en riesgo (recencia > P70 = 234 días al 1/1/2026); 0 = activo o sin transacciones. Se calcula en Python y no es una predicción de abandono.
+	/// 1 = cliente en riesgo (recencia > P70 = 233 días al 1/1/2026); 0 = activo o sin transacciones. Se calcula en Python y no es una predicción de abandono.
 	column en_riesgo
 		dataType: int64
 		formatString: 0
